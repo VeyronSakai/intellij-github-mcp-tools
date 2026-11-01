@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
@@ -45,6 +46,13 @@ intellijPlatform {
     // `./gradlew verifyPlugin` checks the built plugin against every supported IDE line with the Plugin Verifier,
     // so internal GitHub plugin APIs that changed or disappeared are reported as compatibility problems.
     pluginVerification {
+        // This plugin uses internal / experimental GitHub plugin APIs on purpose (checked per branch by hand),
+        // so only real incompatibilities fail the build. Those usages are still listed in the report.
+        failureLevel = listOf(
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
+        )
         ides {
             providers.gradleProperty("pluginVerifierIdeVersions").get()
                 .split(',').map { it.trim() }.filter { it.isNotEmpty() }
