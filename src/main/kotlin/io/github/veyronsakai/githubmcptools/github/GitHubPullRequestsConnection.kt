@@ -254,7 +254,7 @@ internal class GitHubPullRequestsConnection private constructor(
             return if (parts.size >= 2) "${parts[parts.size - 2]}/${parts.last()}" else trimmed
         }
 
-        private fun sameServer(a: URI, b: URI): Boolean =
+        internal fun sameServer(a: URI, b: URI): Boolean =
             a.host.equals(b.host, ignoreCase = true) && a.port == b.port &&
                 a.path.orEmpty().trimEnd('/') == b.path.orEmpty().trimEnd('/')
     }

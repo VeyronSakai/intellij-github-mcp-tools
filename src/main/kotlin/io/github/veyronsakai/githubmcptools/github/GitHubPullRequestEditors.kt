@@ -86,8 +86,13 @@ internal object GitHubPullRequestEditors {
 
     private fun parse(file: VirtualFile): PullRequestView? {
         if (file.fileSystem.protocol != PROTOCOL) return null
+        return parsePath(file.path, file.presentableName)
+    }
+
+    /** Parses the path of a `ghpr` file (Gson JSON of `GHPRFilePath`). null if it is not such a path. */
+    internal fun parsePath(rawPath: String, title: String): PullRequestView? {
         val path = try {
-            Json.parseToJsonElement(file.path).jsonObject
+            Json.parseToJsonElement(rawPath).jsonObject
         }
         catch (_: SerializationException) {
             return null
@@ -102,7 +107,7 @@ internal object GitHubPullRequestEditors {
             repository = if (owner != null && name != null) "$owner/$name" else null,
             number = path.obj("prId")?.primitive("number")?.longOrNull,
             kind = if (path.primitive("isDiff")?.booleanOrNull == true) PullRequestView.Kind.DIFF else PullRequestView.Kind.TIMELINE,
-            title = file.presentableName,
+            title = title,
         )
     }
 
