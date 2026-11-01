@@ -40,8 +40,23 @@ intellijPlatform {
 
 intellijPlatformTesting {
     runIde {
+        // The Rider installation differs per machine and OS, so set `riderLocalPath` outside the repository:
+        // in ~/.gradle/gradle.properties, or with `./gradlew runRider -PriderLocalPath=<path>`.
         register("runRider") {
-            localPath = file(providers.gradleProperty("riderLocalPath").get())
+            val riderLocalPath = providers.gradleProperty("riderLocalPath")
+            localPath.fileProvider(riderLocalPath.map { File(it) })
+            task {
+                doFirst {
+                    if (!riderLocalPath.isPresent) {
+                        throw GradleException(
+                            "Set riderLocalPath to your Rider installation, e.g. in ~/.gradle/gradle.properties: " +
+                                "riderLocalPath=/Applications/Rider.app (macOS), " +
+                                "C:\\Program Files\\JetBrains\\JetBrains Rider 2026.2 (Windows), " +
+                                "or ~/.local/share/JetBrains/Toolbox/apps/rider (Linux)"
+                        )
+                    }
+                }
+            }
         }
     }
 }

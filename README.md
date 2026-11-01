@@ -35,6 +35,15 @@ When `repository` is given and differs from the selected one, the tool window is
 
 ```shell
 ./gradlew buildPlugin   # build the plugin zip into build/distributions
-./gradlew runRider      # run the Rider at riderLocalPath (gradle.properties) with the plugin
+./gradlew runRider      # run your local Rider with the plugin (see below)
 ./gradlew runIde        # run IntelliJ IDEA with the plugin
 ```
+
+`runRider` needs the path of your Rider installation in the Gradle property `riderLocalPath`.
+Set it outside the repository, e.g. in `~/.gradle/gradle.properties`:
+
+```properties
+riderLocalPath=/Applications/Rider.app
+```
+
+or pass it on the command line: `./gradlew runRider -PriderLocalPath=<path>`.
