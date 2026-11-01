@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.veyronsakai.intellijgithubmcptools</id>
-    <name>intellij-github-mcp-tools</name>
+    <name>GitHub MCP Toolset</name>
     <vendor>veyronsakai</vendor>
     <description><![CDATA[
         <p><b>intellij-github-mcp-tools</b> is a repository that provides a pure template to make it easier to create a new plugin project.</p>
