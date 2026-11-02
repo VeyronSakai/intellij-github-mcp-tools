@@ -48,17 +48,7 @@ class PullRequestToolset : McpToolset {
     ): String {
         val kinds = parseKinds(kind)
         val connection = connect(number, repository)
-        val opened = try {
-            connection.openPullRequestView(number, kinds)
-        }
-        catch (e: GitHubPullRequestsConnection.GitHubAccessException) {
-            if (e.authentication) {
-                mcpFail("${e.message} Ask the user to log in to GitHub again in the Pull Requests tool window, then retry.")
-            }
-            else {
-                mcpFail("${e.message} The pull request was not opened; retry later or check the network connection.")
-            }
-        }
+        val opened = failOnGitHubAccessError { connection.openPullRequestView(number, kinds) }
         if (!opened) {
             mcpFail(
                 "Pull request #$number was not found in ${connection.repository.fullName}. " +

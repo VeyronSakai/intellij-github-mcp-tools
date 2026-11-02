@@ -34,3 +34,19 @@ internal fun Result.connectionOrFail(project: Project): GitHubPullRequestsConnec
             "and select the repository, then call this tool again."
     )
 }
+
+/**
+ * Runs [action]; if a GitHub API request in it fails, fails the MCP call with a message that tells the LLM what to do next.
+ */
+internal suspend fun <T> failOnGitHubAccessError(action: suspend () -> T): T =
+    try {
+        action()
+    }
+    catch (e: GitHubPullRequestsConnection.GitHubAccessException) {
+        if (e.authentication) {
+            mcpFail("${e.message} Ask the user to log in to GitHub again in the Pull Requests tool window, then call this tool again.")
+        }
+        else {
+            mcpFail("${e.message} Retry later, or ask the user to check the network connection.")
+        }
+    }
