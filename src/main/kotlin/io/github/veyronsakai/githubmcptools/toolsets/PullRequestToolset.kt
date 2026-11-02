@@ -91,6 +91,7 @@ class PullRequestToolset : McpToolset {
         |Without parameters, closes all views of all pull requests.
         |Returns JSON: {"closed": [{"repository": "owner/repo", "number": 123, "kind": "timeline"|"diff", "title": "..."}]};
         |an empty list means no matching view was open (not an error).
+        |Fails only if `kind` is invalid or `number` is negative. Does not open the tool window or contact GitHub.
         """
     )
     suspend fun github_close_pull_request_view(
@@ -123,8 +124,9 @@ class PullRequestToolset : McpToolset {
     @McpDescription(
         """
         |Closes (hides) the IDE's Pull Requests tool window (bundled GitHub plugin).
-        |The selected repository, the filter and open editor tabs are kept; other github_* tools show the tool window again.
-        |This only changes the IDE UI; nothing on GitHub is modified. Does nothing if the tool window is already hidden.
+        |The selected repository, the filter and open editor tabs are kept. github_select_repository, github_open_pull_request_view,
+        |github_open_pull_request_list and github_set_pull_request_filter show the tool window again.
+        |This only changes the IDE UI; nothing on GitHub is modified. Never fails; does nothing if the tool window is already hidden.
         """
     )
     suspend fun github_close_tool_window(): String {

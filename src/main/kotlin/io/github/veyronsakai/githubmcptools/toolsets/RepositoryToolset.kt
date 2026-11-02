@@ -40,7 +40,7 @@ class RepositoryToolset : McpToolset {
                     addJsonObject {
                         put("repository", repo.fullName)
                         put("url", repo.url)
-                        put("connected", repo == status.connected)
+                        put("connected", repo.isSameAs(status.connected))
                     }
                 }
             }

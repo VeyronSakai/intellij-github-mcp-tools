@@ -1,12 +1,10 @@
 package io.github.veyronsakai.githubmcptools.github
 
 import io.github.veyronsakai.githubmcptools.github.GitHubPullRequestsConnection.Companion.normalizeRepositoryName
-import io.github.veyronsakai.githubmcptools.github.GitHubPullRequestsConnection.Companion.sameServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.net.URI
 
 class GitHubPullRequestsConnectionTest {
     @Test
@@ -33,12 +31,17 @@ class GitHubPullRequestsConnectionTest {
     }
 
     @Test
-    fun `servers are compared without the scheme`() {
-        assertTrue(sameServer(URI("https://github.com"), URI("http://github.com")))
-        assertTrue(sameServer(URI("https://GitHub.com/"), URI("https://github.com")))
-        assertTrue(sameServer(URI("https://ghe.example.com/api"), URI("https://ghe.example.com/api/")))
-        assertFalse(sameServer(URI("https://github.com"), URI("https://ghe.example.com")))
-        assertFalse(sameServer(URI("https://ghe.example.com:8443"), URI("https://ghe.example.com")))
-        assertFalse(sameServer(URI("https://ghe.example.com/a"), URI("https://ghe.example.com/b")))
+    fun `query, fragment and hosts with a port are ignored`() {
+        assertEquals("octo/hello", normalizeRepositoryName("https://github.com/octo/hello?tab=readme"))
+        assertEquals("octo/hello", normalizeRepositoryName("https://github.com/octo/hello/pull/12#discussion_r1"))
+        assertEquals("octo/hello", normalizeRepositoryName("localhost:8080/octo/hello"))
+    }
+
+    @Test
+    fun `repository info comparison ignores case`() {
+        val remote = GitHubRepositoryInfo("Octo/Hello", "https://github.com/Octo/Hello")
+        assertTrue(remote.isSameAs(GitHubRepositoryInfo("octo/hello", "https://github.com/octo/hello")))
+        assertFalse(remote.isSameAs(GitHubRepositoryInfo("octo/other", "https://github.com/octo/other")))
+        assertFalse(remote.isSameAs(null))
     }
 }
