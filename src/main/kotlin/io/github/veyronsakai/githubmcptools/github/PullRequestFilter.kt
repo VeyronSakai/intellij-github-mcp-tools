@@ -1,3 +1,7 @@
+// GitHub plugin internal / experimental APIs are used on purpose and only in this package
+// (checked on every supported IDE line and by `./gradlew verifyPlugin`), so the IDE's "Unstable API Usage" warnings are suppressed here.
+@file:Suppress("UnstableApiUsage")
+
 package io.github.veyronsakai.githubmcptools.github
 
 import org.jetbrains.plugins.github.pullrequest.ui.filters.GHPRListSearchValue

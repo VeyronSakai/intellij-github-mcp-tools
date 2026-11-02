@@ -1,3 +1,6 @@
+// Tests use the GitHub plugin's internal / experimental classes on purpose.
+@file:Suppress("UnstableApiUsage")
+
 package io.github.veyronsakai.githubmcptools.github
 
 import com.intellij.vcs.editor.ComplexPathVirtualFileSystem

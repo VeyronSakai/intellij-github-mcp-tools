@@ -1,3 +1,6 @@
+// Tests use the GitHub plugin's internal / experimental classes on purpose.
+@file:Suppress("UnstableApiUsage")
+
 package io.github.veyronsakai.githubmcptools.github
 
 import org.jetbrains.plugins.github.pullrequest.ui.filters.GHPRListSearchValue
