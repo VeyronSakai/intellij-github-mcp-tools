@@ -1,4 +1,4 @@
-# GitHub MCP Toolset
+# GitHub MCP Tools
 
 ![Build](https://github.com/VeyronSakai/intellij-github-mcp-tools/workflows/Build/badge.svg)
 

@@ -1,6 +1,6 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# GitHub MCP Toolset Changelog
+# GitHub MCP Tools Changelog
 
 ## [Unreleased]
 ### Added
