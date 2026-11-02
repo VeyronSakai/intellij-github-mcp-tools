@@ -3,7 +3,7 @@
     <!-- Do not change after the first release -->
     <id>io.github.veyronsakai.githubmcptools</id>
     <name>GitHub MCP Tools</name>
-    <vendor url="https://github.com/VeyronSakai">VeyronSakai</vendor>
+    <vendor url="https://github.com/VeyronSakai">Yuki Sakai</vendor>
     <description><![CDATA[
         <p>Adds tools to the IDE's built-in MCP server that drive the bundled GitHub plugin UI,
         so MCP clients such as Claude Code can open pull requests in the IDE.</p>
