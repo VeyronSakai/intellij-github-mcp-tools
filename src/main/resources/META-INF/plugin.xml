@@ -3,11 +3,12 @@
     <!-- Do not change after the first release -->
     <id>io.github.veyronsakai.githubmcptools</id>
     <name>GitHub MCP Tools</name>
-    <vendor url="https://github.com/VeyronSakai">VeyronSakai</vendor>
+    <vendor url="https://github.com/VeyronSakai">Yuki Sakai</vendor>
     <description><![CDATA[
         <p>Adds tools to the IDE's built-in MCP server that drive the bundled GitHub plugin UI,
         so MCP clients such as Claude Code can open pull requests in the IDE.</p>
         <p>The tools only open and show things in the IDE. They never modify data on GitHub.</p>
+        <p>This is an independent plugin and is not affiliated with or endorsed by GitHub or JetBrains.</p>
         <h3>Tools</h3>
         <ul>
             <li><code>github_list_repositories</code> &mdash; lists the project's GitHub repositories, the selected one and the GitHub account.</li>
