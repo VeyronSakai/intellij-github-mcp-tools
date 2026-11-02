@@ -1,45 +1,49 @@
-# intellij-github-mcp-tools
+# GitHub MCP Tools
 
 ![Build](https://github.com/VeyronSakai/intellij-github-mcp-tools/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Adjust the [group](./gradle.properties), as well as the [id](./src/main/resources/META-INF/plugin.xml), [name](./src/main/resources/META-INF/plugin.xml), and [sources package](./src/main/kotlin).
-- [ ] Adjust the plugin [description](./src/main/resources/META-INF/plugin.xml) (see [Tips][docs:plugin-description]) and this README to describe what your plugin does.
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html?from=IJPluginTemplate).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the `MARKETPLACE_ID` in the above README badges. You can obtain it once the plugin is published to JetBrains Marketplace.
-- [ ] Set the [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html?from=IJPluginTemplate) related [secrets](https://github.com/JetBrains/intellij-platform-plugin-template#environment-variables).
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html?from=IJPluginTemplate).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+<!-- Plugin description -->
+An IntelliJ Platform plugin (IntelliJ IDEA, Rider, PyCharm, ...) that adds GitHub tools to the IDE's built-in MCP server.
+MCP clients such as Claude Code can use them to open pull requests in the IDE's Pull Requests tool window.
 
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+The tools only open and show things in the IDE. They never modify data on GitHub
+(use the official GitHub MCP server for that).
+<!-- Plugin description end -->
 
-## Installation
+## Tools
 
-- Using the IDE built-in plugin system:
+| Tool | Description |
+| --- | --- |
+| `github_list_repositories` | Lists the project's GitHub repositories, the one selected in the Pull Requests tool window, and the GitHub account. Read-only. |
+| `github_select_repository` | Selects the repository of the Pull Requests tool window and shows its pull request list. Parameter: `repository` (`owner/repo`). |
+| `github_open_pull_request_view` | Shows a pull request: details in the tool window, plus timeline and/or diff in editor tabs. Parameters: `number`, `kind` (`timeline` (default), `diff`, `all`), `repository` (optional). |
+| `github_open_pull_request_list` | Shows the pull request list. Parameters: `refresh` (reload from GitHub, default false), `repository` (optional). |
+| `github_close_pull_request_view` | Closes the timeline and/or diff views of pull requests. Does **not** close pull requests on GitHub. Parameters (all optional): `number` (all pull requests if omitted), `kind` (`timeline`, `diff`, `all` (default)), `repository`. |
+| `github_close_tool_window` | Hides the Pull Requests tool window. |
+| `github_get_pull_request_filter` | Returns the filter of the pull request list. Read-only. |
+| `github_set_pull_request_filter` | Replaces the filter of the pull request list. Parameters (all optional): `query`, `state`, `author`, `assignee`, `label`, `reviewState`, `sort`, `repository`. |
 
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "intellij-github-mcp-tools"</kbd> >
-  <kbd>Install</kbd>
+When `repository` is given and differs from the selected one, the tool window is switched to it first.
 
-- Using JetBrains Marketplace:
+## Requirements
 
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
+- IntelliJ Platform IDE 2025.3 (build 253) or later, e.g. IntelliJ IDEA or Rider
+- Bundled plugins enabled: GitHub, MCP Server
+- The project has a GitHub remote, and you are logged in to GitHub in the IDE
 
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+## Development
 
-- Manually:
+```shell
+./gradlew buildPlugin   # build the plugin zip into build/distributions
+./gradlew runLocalIde   # run an IDE installed on your machine with the plugin (see below)
+./gradlew runIde        # download and run IntelliJ IDEA (the oldest supported version) with the plugin
+```
 
-  Download the [latest release](https://github.com/VeyronSakai/intellij-github-mcp-tools/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+`runLocalIde` needs the installation path of the IDE to run (IntelliJ IDEA, Rider, ...) in the Gradle property `localIdePath`.
+Set it outside the repository, e.g. in `~/.gradle/gradle.properties`:
 
+```properties
+localIdePath=/Applications/Rider.app
+```
 
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
-
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
-[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
+or pass it on the command line: `./gradlew runLocalIde -PlocalIdePath=<path>`.

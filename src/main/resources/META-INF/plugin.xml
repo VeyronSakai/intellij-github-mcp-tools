@@ -1,19 +1,33 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.veyronsakai.intellijgithubmcptools</id>
-    <name>GitHub MCP Toolset</name>
-    <vendor>veyronsakai</vendor>
+    <!-- Do not change after the first release -->
+    <id>io.github.veyronsakai.githubmcptools</id>
+    <name>GitHub MCP Tools</name>
+    <vendor url="https://github.com/VeyronSakai">VeyronSakai</vendor>
     <description><![CDATA[
-        <p><b>intellij-github-mcp-tools</b> is a repository that provides a pure template to make it easier to create a new plugin project.</p>
-        <p>The main goal of this template is to speed up the setup phase of plugin development for both new and experienced developers by preconfiguring the project scaffold and CI, linking to the proper documentation pages, and keeping everything organized.</p>
+        <p>Adds tools to the IDE's built-in MCP server that drive the bundled GitHub plugin UI,
+        so MCP clients such as Claude Code can open pull requests in the IDE.</p>
+        <p>The tools only open and show things in the IDE. They never modify data on GitHub.</p>
+        <h3>Tools</h3>
+        <ul>
+            <li><code>github_list_repositories</code> &mdash; lists the project's GitHub repositories, the selected one and the GitHub account.</li>
+            <li><code>github_select_repository</code> &mdash; selects the repository of the Pull Requests tool window and shows its pull request list.</li>
+            <li><code>github_open_pull_request_view</code> &mdash; shows a pull request (details, and its timeline and/or diff).</li>
+            <li><code>github_open_pull_request_list</code> &mdash; shows (and optionally reloads) the pull request list.</li>
+            <li><code>github_close_pull_request_view</code> &mdash; closes the timeline and/or diff views of pull requests. Does not close pull requests on GitHub.</li>
+            <li><code>github_close_tool_window</code> &mdash; hides the Pull Requests tool window.</li>
+            <li><code>github_get_pull_request_filter</code> &mdash; returns the filter of the pull request list.</li>
+            <li><code>github_set_pull_request_filter</code> &mdash; sets the filter of the pull request list (state, author, assignee, label, review state, sort, search query).</li>
+        </ul>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.github</depends>
+    <depends>com.intellij.mcpServer</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.veyronsakai.intellijgithubmcptools.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.veyronsakai.intellijgithubmcptools.startup.MyProjectActivity" />
+    <extensions defaultExtensionNs="com.intellij.mcpServer">
+        <mcpToolset implementation="io.github.veyronsakai.githubmcptools.toolsets.RepositoryToolset"/>
+        <mcpToolset implementation="io.github.veyronsakai.githubmcptools.toolsets.PullRequestToolset"/>
+        <mcpToolset implementation="io.github.veyronsakai.githubmcptools.toolsets.PullRequestFilterToolset"/>
     </extensions>
 </idea-plugin>
