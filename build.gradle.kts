@@ -43,6 +43,18 @@ intellijPlatform {
         }
     }
 
+    // Signing and publishing to JetBrains Marketplace (`./gradlew signPlugin` / `publishPlugin`).
+    // The secrets come from environment variables, set as GitHub Actions secrets for the Release workflow.
+    // See https://plugins.jetbrains.com/docs/intellij/plugin-signing.html
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
+
     // `./gradlew verifyPlugin` checks the built plugin against every supported IDE line with the Plugin Verifier,
     // so internal GitHub plugin APIs that changed or disappeared are reported as compatibility problems.
     pluginVerification {

@@ -10,6 +10,21 @@ The tools only open and show things in the IDE. They never modify data on GitHub
 (use the official GitHub MCP server for that).
 <!-- Plugin description end -->
 
+This is an independent plugin and is not affiliated with or endorsed by GitHub or JetBrains.
+
+## Installation
+
+- From JetBrains Marketplace: <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > search for "GitHub MCP Tools" > <kbd>Install</kbd>
+- Manually: download the zip from the [latest release](https://github.com/VeyronSakai/intellij-github-mcp-tools/releases/latest),
+  then <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install Plugin from Disk...</kbd>
+
+## Usage
+
+1. Enable the IDE's MCP server: <kbd>Settings</kbd> > <kbd>Tools</kbd> > <kbd>MCP Server</kbd>.
+2. Connect your MCP client (e.g. Claude Code) to it; the same settings page shows how.
+3. Open a project with a GitHub remote, and log in to GitHub in the IDE (<kbd>Settings</kbd> > <kbd>Version Control</kbd> > <kbd>GitHub</kbd>).
+4. Ask the client, for example: "Open pull request #123 in the IDE".
+
 ## Tools
 
 | Tool | Description |
@@ -47,3 +62,7 @@ localIdePath=/Applications/Rider.app
 ```
 
 or pass it on the command line: `./gradlew runLocalIde -PlocalIdePath=<path>`.
+
+## License
+
+[Apache License 2.0](LICENSE)
