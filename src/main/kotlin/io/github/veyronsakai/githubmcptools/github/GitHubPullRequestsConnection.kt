@@ -3,24 +3,26 @@ package io.github.veyronsakai.githubmcptools.github
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceAsync
+import com.intellij.openapi.progress.coroutineToIndicator
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import com.intellij.openapi.progress.EmptyProgressIndicator
 import org.jetbrains.plugins.github.api.GHGQLRequests
 import org.jetbrains.plugins.github.api.GHRepositoryCoordinates
 import org.jetbrains.plugins.github.api.GithubApiRequestExecutor
-import org.jetbrains.plugins.github.pullrequest.data.GHPRIdentifier
 import org.jetbrains.plugins.github.authentication.accounts.GHAccountManager
 import org.jetbrains.plugins.github.authentication.accounts.GithubAccount
+import org.jetbrains.plugins.github.authentication.accounts.GithubProjectDefaultAccountHolder
+import org.jetbrains.plugins.github.exceptions.GithubAuthenticationException
+import org.jetbrains.plugins.github.exceptions.GithubConfusingException
+import org.jetbrains.plugins.github.pullrequest.data.GHPRIdentifier
 import org.jetbrains.plugins.github.pullrequest.ui.GHPRConnectedProjectViewModel
 import org.jetbrains.plugins.github.pullrequest.ui.GHPRProjectViewModel
 import org.jetbrains.plugins.github.util.GHGitRepositoryMapping
-import org.jetbrains.plugins.github.exceptions.GithubAuthenticationException
-import org.jetbrains.plugins.github.exceptions.GithubConfusingException
+import org.jetbrains.plugins.github.util.GHHostedRepositoriesManager
 import java.io.IOException
 import java.net.URI
 import kotlin.time.Duration
@@ -89,7 +91,8 @@ internal class GitHubPullRequestsConnection private constructor(
         val request = GHGQLRequests.PullRequest.findOneId(connected.repository, number)
         return withContext(Dispatchers.IO) {
             try {
-                executor.execute(EmptyProgressIndicator(), request)
+                // The indicator is cancelled together with the coroutine (e.g. when the MCP call is cancelled).
+                coroutineToIndicator { indicator -> executor.execute(indicator, request) }
             }
             catch (e: GithubAuthenticationException) {
                 throw GitHubAccessException("GitHub rejected the account '${account.name}': ${e.message}", authentication = true)
@@ -112,11 +115,12 @@ internal class GitHubPullRequestsConnection private constructor(
     val filter: PullRequestFilter
         get() = PullRequestFilter.of(connected.listVm.searchVm.searchState.value)
 
-    /** Replaces the whole filter of the pull request list; the list reloads automatically. */
+    /** Replaces the whole filter of the pull request list and shows the list; it reloads automatically. */
     suspend fun setFilter(filter: PullRequestFilter) {
         val value = filter.toSearchValue()
         withContext(Dispatchers.EDT) {
             connected.listVm.searchVm.searchState.value = value
+            connected.viewList(true)
         }
     }
 
@@ -131,6 +135,9 @@ internal class GitHubPullRequestsConnection private constructor(
 
         /** No GitHub account is registered in the IDE for the repository's server. */
         class NotLoggedIn(val repository: GitHubRepositoryInfo) : Result
+
+        /** Several accounts exist for the server and none is selected or set as the project default. */
+        class AmbiguousAccount(val repository: GitHubRepositoryInfo, val accounts: List<String>) : Result
 
         /** The account exists but its token is missing; the user must log in again. */
         class MissingCredentials(val repository: GitHubRepositoryInfo, val account: String) : Result
@@ -167,8 +174,10 @@ internal class GitHubPullRequestsConnection private constructor(
             val connected = withTimeoutOrNull(STATUS_TIMEOUT) {
                 projectVm.connectedProjectVm.filterNotNull().first()
             }
+            // Not `selectorVm`: creating it starts the GitHub plugin's auto-connection, and this must not change anything.
+            val repositories = project.serviceAsync<GHHostedRepositoriesManager>().knownRepositoriesState.value
             return Status(
-                repositories = knownRepositories(projectVm).map { GitHubRepositoryInfo.of(it.repository) },
+                repositories = repositories.map { GitHubRepositoryInfo.of(it.repository) }.sortedBy { it.fullName },
                 connected = connected?.repository?.let(GitHubRepositoryInfo::of),
                 account = connected?.listVm?.account?.name,
             )
@@ -198,8 +207,11 @@ internal class GitHubPullRequestsConnection private constructor(
                 }
             }
 
-            val known = knownRepositories(projectVm)
-            if (known.isEmpty()) return Result.NoGitHubRepository
+            // Right after the IDE starts, Git remotes are still loading: wait like the `repository == null` case does.
+            val known = withTimeoutOrNull(CONNECT_TIMEOUT) {
+                project.serviceAsync<GHHostedRepositoriesManager>().knownRepositoriesState.first { it.isNotEmpty() }
+            }?.sortedBy { it.repository.repositoryPath.toString() }
+                ?: return Result.NoGitHubRepository
             val target = findRepository(known, repository)
                 ?: return Result.RepositoryNotFound(repository, known.map { GitHubRepositoryInfo.of(it.repository) })
             val targetInfo = GitHubRepositoryInfo.of(target.repository)
@@ -215,9 +227,13 @@ internal class GitHubPullRequestsConnection private constructor(
             val accounts = service<GHAccountManager>().accountsState.value
                 .filter { sameServer(it.server.toURI(), target.repository.serverPath.toURI()) }
             if (accounts.isEmpty()) return Result.NotLoggedIn(targetInfo)
-            // Prefer the account that is already selected (the one used for the current connection).
+            // 1. the account already selected in the tool window (used for the current connection)
+            // 2. the project's default GitHub account (Settings | Version Control | GitHub)
+            // 3. the only account for the server
             val account: GithubAccount = selector.accountSelectionState.value?.takeIf { it in accounts }
-                ?: accounts.sortedBy { it.name }.first()
+                ?: project.service<GithubProjectDefaultAccountHolder>().account?.takeIf { it in accounts }
+                ?: accounts.singleOrNull()
+                ?: return Result.AmbiguousAccount(targetInfo, accounts.map { it.name }.sorted())
 
             withContext(Dispatchers.EDT) {
                 selector.repoSelectionState.value = target
@@ -238,9 +254,6 @@ internal class GitHubPullRequestsConnection private constructor(
             return if (connected != null) Result.Connected(GitHubPullRequestsConnection(connected))
             else Result.NotConnected(targetInfo)
         }
-
-        private fun knownRepositories(projectVm: GHPRProjectViewModel): List<GHGitRepositoryMapping> =
-            projectVm.selectorVm.repositoriesState.value.sortedBy { it.repository.repositoryPath.toString() }
 
         private fun findRepository(known: List<GHGitRepositoryMapping>, requested: String): GHGitRepositoryMapping? {
             val fullName = normalizeRepositoryName(requested)

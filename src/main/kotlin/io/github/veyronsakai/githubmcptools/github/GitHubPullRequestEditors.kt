@@ -10,10 +10,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 /** A pull request view opened by the GitHub plugin in an editor tab (timeline or diff). */
@@ -68,7 +68,7 @@ internal object GitHubPullRequestEditors {
                 .mapNotNull { file -> parse(file)?.let { file to it } }
                 .filter { (_, tab) ->
                     tab.kind in kinds &&
-                            (fullName == null || tab.repository.equals(fullName, ignoreCase = true)) &&
+                        (fullName == null || tab.repository.equals(fullName, ignoreCase = true)) &&
                         (number == null || tab.number == number)
                 }
                 .onEach { (file, _) -> manager.closeFile(file) }

@@ -19,6 +19,11 @@ internal fun Result.connectionOrFail(project: Project): GitHubPullRequestsConnec
         "No GitHub account for ${repository.url} is registered in the IDE. " +
             "Ask the user to log in to GitHub in the IDE (Settings | Version Control | GitHub), then call this tool again."
     )
+    is Result.AmbiguousAccount -> mcpFail(
+        "Several GitHub accounts can access ${repository.url} (${accounts.joinToString()}) and none is chosen. " +
+            "Ask the user to select the repository and account in the Pull Requests tool window " +
+            "(or set the default account in Settings | Version Control | GitHub), then call this tool again."
+    )
     is Result.MissingCredentials -> mcpFail(
         "The GitHub account '$account' has no saved token. " +
             "Ask the user to log in again in the Pull Requests tool window, then call this tool again."

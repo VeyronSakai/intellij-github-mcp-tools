@@ -40,7 +40,7 @@ class PullRequestFilterToolset : McpToolset {
     @McpDescription(
         """
         |Sets the filter of the pull request list in the IDE's Pull Requests tool window (bundled GitHub plugin)
-        |and shows the tool window; the list reloads with the new filter.
+        |and shows the list (also when a pull request's details were shown); the list reloads with the new filter.
         |The whole filter is replaced: every parameter that is omitted or empty is cleared. To change one field,
         |read the current filter with github_get_pull_request_filter and pass the other fields again. Calling with no parameters clears all filters.
         |This only changes the IDE UI; nothing on GitHub is modified.
