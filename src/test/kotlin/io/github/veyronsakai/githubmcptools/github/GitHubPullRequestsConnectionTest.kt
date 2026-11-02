@@ -17,7 +17,19 @@ class GitHubPullRequestsConnectionTest {
         assertEquals("octo/hello", normalizeRepositoryName("https://github.com/octo/hello.git"))
         assertEquals("octo/hello", normalizeRepositoryName("git@github.com:octo/hello.git"))
         assertEquals("octo/hello", normalizeRepositoryName("https://ghe.example.com/octo/hello"))
+        assertEquals("octo/hello", normalizeRepositoryName("ssh://git@github.com/octo/hello.git"))
         assertEquals("hello", normalizeRepositoryName("hello"))
+    }
+
+    @Test
+    fun `pull request and other GitHub page URLs give the repository`() {
+        assertEquals("octo/hello", normalizeRepositoryName("https://github.com/octo/hello/pull/12"))
+        assertEquals("octo/hello", normalizeRepositoryName("https://github.com/octo/hello/pull/12/files"))
+        assertEquals("octo/hello", normalizeRepositoryName("https://github.com/octo/hello/tree/main/src"))
+        assertEquals("octo/hello", normalizeRepositoryName("github.com/octo/hello/pull/12"))
+        assertEquals("octo/hello", normalizeRepositoryName("github.com/octo/hello"))
+        assertEquals("octo/hello", normalizeRepositoryName("octo/hello/pull/12"))
+        assertEquals("my-org/repo.name", normalizeRepositoryName("https://github.com/my-org/repo.name.git"))
     }
 
     @Test

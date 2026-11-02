@@ -264,11 +264,24 @@ internal class GitHubPullRequestsConnection private constructor(
             return known.firstOrNull { it.repository.repositoryPath.toString().equals(fullName, ignoreCase = true) }
         }
 
-        /** Accepts `owner/repo`, `https://host/owner/repo(.git)` and `git@host:owner/repo(.git)`. */
+        /**
+         * Returns `owner/repo` from `owner/repo`, a repository or pull request URL
+         * (`https://host/owner/repo(.git)`, `https://host/owner/repo/pull/12`, `host/owner/repo`)
+         * or an SSH remote (`git@host:owner/repo.git`).
+         */
         internal fun normalizeRepositoryName(value: String): String {
-            val trimmed = value.trim().removeSuffix("/").removeSuffix(".git")
-            val parts = trimmed.split('/', ':').filter { it.isNotEmpty() }
-            return if (parts.size >= 2) "${parts[parts.size - 2]}/${parts.last()}" else trimmed
+            val trimmed = value.trim()
+            val path = when {
+                "://" in trimmed -> trimmed.substringAfter("://").substringAfter('/', "")  // drop scheme and host
+                Regex("^[^/]+@[^/:]+:").containsMatchIn(trimmed) -> trimmed.substringAfter(':')  // git@host:owner/repo
+                else -> trimmed
+            }
+            // GitHub owner names cannot contain '.', so a first segment with '.' is a host (e.g. github.com/owner/repo).
+            val segments = path.split('/').filter { it.isNotEmpty() }.let { s ->
+                if (s.size > 2 && '.' in s.first()) s.drop(1) else s
+            }
+            if (segments.size < 2) return trimmed
+            return "${segments[0]}/${segments[1].removeSuffix(".git")}"
         }
 
         internal fun sameServer(a: URI, b: URI): Boolean =
