@@ -63,19 +63,20 @@ intellijPlatform {
 
 intellijPlatformTesting {
     runIde {
-        // The Rider installation differs per machine and OS, so set `riderLocalPath` outside the repository:
-        // in ~/.gradle/gradle.properties, or with `./gradlew runRider -PriderLocalPath=<path>`.
-        register("runRider") {
-            val riderLocalPath = providers.gradleProperty("riderLocalPath")
-            localPath.fileProvider(riderLocalPath.map { File(it) })
+        // Runs an IDE installed on this machine (IntelliJ IDEA, Rider, PyCharm, ...) with the plugin.
+        // Its path differs per machine and OS, so set `localIdePath` outside the repository:
+        // in ~/.gradle/gradle.properties, or with `./gradlew runLocalIde -PlocalIdePath=<path>`.
+        register("runLocalIde") {
+            val localIdePath = providers.gradleProperty("localIdePath").filter { it.isNotBlank() }
+            localPath.fileProvider(localIdePath.map { File(it) })
             task {
                 doFirst {
-                    if (!riderLocalPath.isPresent) {
+                    if (!localIdePath.isPresent) {
                         throw GradleException(
-                            "Set riderLocalPath to your Rider installation, e.g. in ~/.gradle/gradle.properties: " +
-                                "riderLocalPath=/Applications/Rider.app (macOS), " +
-                                "C:\\Program Files\\JetBrains\\JetBrains Rider 2026.2 (Windows), " +
-                                "or ~/.local/share/JetBrains/Toolbox/apps/rider (Linux)"
+                            "Set localIdePath to the installation of the IDE to run, e.g. in ~/.gradle/gradle.properties: " +
+                                "localIdePath=/Applications/Rider.app (macOS), " +
+                                "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.2 (Windows), " +
+                                "or ~/.local/share/JetBrains/Toolbox/apps/intellij-idea (Linux)"
                         )
                     }
                 }

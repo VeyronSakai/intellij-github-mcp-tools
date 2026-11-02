@@ -3,7 +3,7 @@
 ![Build](https://github.com/VeyronSakai/intellij-github-mcp-tools/workflows/Build/badge.svg)
 
 <!-- Plugin description -->
-An IntelliJ Platform plugin (mainly for Rider) that adds GitHub tools to the IDE's built-in MCP server.
+An IntelliJ Platform plugin (IntelliJ IDEA, Rider, PyCharm, ...) that adds GitHub tools to the IDE's built-in MCP server.
 MCP clients such as Claude Code can use them to open pull requests in the IDE's Pull Requests tool window.
 
 The tools only open and show things in the IDE. They never modify data on GitHub
@@ -27,7 +27,7 @@ When `repository` is given and differs from the selected one, the tool window is
 
 ## Requirements
 
-- IntelliJ Platform IDE 2025.3 (build 253) or later, e.g. Rider
+- IntelliJ Platform IDE 2025.3 (build 253) or later, e.g. IntelliJ IDEA or Rider
 - Bundled plugins enabled: GitHub, MCP Server
 - The project has a GitHub remote, and you are logged in to GitHub in the IDE
 
@@ -35,15 +35,15 @@ When `repository` is given and differs from the selected one, the tool window is
 
 ```shell
 ./gradlew buildPlugin   # build the plugin zip into build/distributions
-./gradlew runRider      # run your local Rider with the plugin (see below)
-./gradlew runIde        # run IntelliJ IDEA with the plugin
+./gradlew runLocalIde   # run an IDE installed on your machine with the plugin (see below)
+./gradlew runIde        # download and run IntelliJ IDEA (the oldest supported version) with the plugin
 ```
 
-`runRider` needs the path of your Rider installation in the Gradle property `riderLocalPath`.
+`runLocalIde` needs the installation path of the IDE to run (IntelliJ IDEA, Rider, ...) in the Gradle property `localIdePath`.
 Set it outside the repository, e.g. in `~/.gradle/gradle.properties`:
 
 ```properties
-riderLocalPath=/Applications/Rider.app
+localIdePath=/Applications/Rider.app
 ```
 
-or pass it on the command line: `./gradlew runRider -PriderLocalPath=<path>`.
+or pass it on the command line: `./gradlew runLocalIde -PlocalIdePath=<path>`.
