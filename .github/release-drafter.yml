@@ -1,0 +1,54 @@
+# Release notes and the next version are resolved from the labels of merged pull requests.
+# Labels are added automatically from the branch name (see autolabeler).
+name-template: '$RESOLVED_VERSION'
+tag-template: '$RESOLVED_VERSION'
+categories:
+  - title: 'Breaking Changes'
+    labels:
+      - breaking-change
+  - title: 'Features'
+    labels:
+      - enhancement
+  - title: 'Bug Fixes'
+    labels:
+      - bug
+  - title: 'Maintenance'
+    labels:
+      - chore
+      - documentation
+      - dependencies
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+exclude-labels:
+  - skip-changelog
+version-resolver:
+  major:
+    labels:
+      - breaking-change
+  minor:
+    labels:
+      - enhancement
+  patch:
+    labels:
+      - bug
+      - chore
+      - documentation
+      - dependencies
+  default: patch
+autolabeler:
+  - label: enhancement
+    branch:
+      - '/^feat(ure)?\/.+/'
+  - label: bug
+    branch:
+      - '/^(bug)?fix\/.+/'
+  - label: chore
+    branch:
+      - '/^(chore|ci|refactor)\/.+/'
+  - label: documentation
+    branch:
+      - '/^docs?\/.+/'
+template: |
+  ## Changes
+
+  $CHANGES

@@ -6,7 +6,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.intellij.platform")
-    id("org.jetbrains.changelog")
 }
 
 group = providers.gradleProperty("pluginGroup").get()
