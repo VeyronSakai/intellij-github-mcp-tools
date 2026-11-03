@@ -1,8 +1,9 @@
-# Publishes the release draft prepared by the Build workflow. Run it manually (Actions > Release > Run workflow,
-# or `gh workflow run release.yml`) from main when the draft for the current pluginVersion is ready.
-#
-# The repository uses immutable releases: assets cannot be added after a release is published.
-# So the signed plugin is attached to the draft first, and the draft is published last.
+# Release flow:
+# - Pull requests are labeled from their branch names. On every push to main, release-drafter updates the release draft
+#   (release notes and the next version, from the labels of merged pull requests; see .github/release-drafter.yml).
+# - Run this workflow manually on main (Actions > Release > Run workflow, or `gh workflow run release.yml`) to release:
+#   the signed plugin is built with the draft's version, attached to the draft, and then the draft is published.
+#   The repository uses immutable releases, so assets must be attached before publishing.
 #
 # Signing requires the secrets PRIVATE_KEY, PRIVATE_KEY_PASSWORD and CERTIFICATE_CHAIN.
 # Publishing to JetBrains Marketplace also requires PUBLISH_TOKEN and the repository variable PUBLISH_TO_MARKETPLACE=true.
@@ -10,21 +11,60 @@
 
 name: Release
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ opened, reopened, synchronize, edited ]
   workflow_dispatch:
 
-concurrency:
-  group: release
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
 
-  release:
-    name: Publish Plugin
-    if: github.ref == 'refs/heads/main'
+  # Label pull requests from their branch names (the labels decide the release notes section and the next version).
+  # Skipped for Dependabot and forks, whose token cannot write; Dependabot adds the "dependencies" label itself.
+  autolabel:
+    name: Label pull request
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: release-drafter/release-drafter/autolabeler@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+
+  # Update the release draft from the pull requests merged into main
+  updateReleaseDraft:
+    name: Update release draft
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
+      pull-requests: read
+    concurrency:
+      group: ${{ github.workflow }}-draft
+      cancel-in-progress: false
+    outputs:
+      tag_name: ${{ steps.release-drafter.outputs.tag_name }}
+    steps:
+      - uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        id: release-drafter
+        with:
+          commitish: main
+
+  # Build and sign the plugin, attach it to the draft, publish to Marketplace if enabled, and publish the draft
+  release:
+    name: Publish Plugin
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: updateReleaseDraft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-release
+      cancel-in-progress: false
+    env:
+      VERSION: ${{ needs.updateReleaseDraft.outputs.tag_name }}
     steps:
 
       # Free GitHub Actions Environment Disk Space
@@ -34,7 +74,7 @@ jobs:
           preinstalled-runtimes: false
           large-packages: false
 
-      # Check out the current repository
+      # Check out the commit this workflow runs on (it is also the commit the release tag is created on)
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -51,42 +91,24 @@ jobs:
         with:
           cache-read-only: true
 
-      # Find the release draft for the current version and save its notes
-      - name: Find Release Draft
-        id: draft
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION=$(./gradlew properties --property version --quiet --console=plain | tail -n 1 | cut -f2- -d ' ')
-          IS_DRAFT=$(gh release view "$VERSION" --json isDraft --jq .isDraft || true)
-          if [ "$IS_DRAFT" != "true" ]; then
-            echo "::error::No release draft for $VERSION. Push to main and wait for the Build workflow to create it (a published release cannot be changed)."
-            exit 1
-          fi
-
-          RELEASE_NOTE="./build/tmp/release_note.txt"
-          mkdir -p "$(dirname "$RELEASE_NOTE")"
-          gh release view "$VERSION" --json body --jq .body > "$RELEASE_NOTE"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "release_note=$RELEASE_NOTE" >> "$GITHUB_OUTPUT"
-
-      # Move the release notes from the Unreleased section to a section for this version
-      - name: Patch Changelog
-        run: ./gradlew patchChangelog --release-note-file=${{ steps.draft.outputs.release_note }}
-
-      # Build and sign the plugin
+      # Build and sign the plugin with the version of the release draft
       - name: Sign Plugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew signPlugin
+        run: |
+          if [ -z "$VERSION" ]; then
+            echo "::error::release-drafter did not resolve a version."
+            exit 1
+          fi
+          ./gradlew signPlugin -PpluginVersion="$VERSION"
 
-      # Attach the plugin to the draft (assets cannot be added after publishing)
+      # Attach the signed plugin to the draft (assets cannot be added after publishing)
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ steps.draft.outputs.version }}" ./build/distributions/* --clobber
+        run: gh release upload "$VERSION" ./build/distributions/*-signed.zip --clobber
 
       # Publish the plugin to JetBrains Marketplace, only when the repository variable PUBLISH_TO_MARKETPLACE is "true"
       - name: Publish to Marketplace
@@ -96,40 +118,11 @@ jobs:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew publishPlugin
+        run: ./gradlew publishPlugin -PpluginVersion="$VERSION"
 
       # Publish the draft; the tag is created on the commit that was built
       - name: Publish Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ steps.draft.outputs.version }}" --target "$GITHUB_SHA" --draft=false --latest
-
-      # Push the patched changelog and open a pull request for it
-      - name: Create Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ steps.draft.outputs.version }}"
-          BRANCH="changelog-update-$VERSION"
-          LABEL="release changelog"
-
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
-
-          git checkout -b $BRANCH
-          git commit -am "Changelog update - $VERSION"
-          git push --set-upstream origin $BRANCH
-
-          gh label create "$LABEL" \
-            --description "Pull requests with release changelog update" \
-            --force \
-            || true
-
-          # Creating a pull request needs "Allow GitHub Actions to create and approve pull requests" in the repository settings.
-          # Without it, the branch is pushed and the pull request has to be opened by hand.
-          gh pr create \
-            --title "Changelog update - \`$VERSION\`" \
-            --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
-            --label "$LABEL" \
-            --head $BRANCH \
-            || echo "Open the pull request by hand: ${{ github.server_url }}/${{ github.repository }}/compare/$BRANCH?expand=1" | tee -a "$GITHUB_STEP_SUMMARY"
+        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        with:
+          publish: true
+          commitish: ${{ github.sha }}
