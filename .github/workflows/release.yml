@@ -26,7 +26,7 @@ jobs:
   # Skipped for Dependabot and forks, whose token cannot write; Dependabot adds the "dependencies" label itself.
   autolabel:
     name: Label pull request
-    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    if: ${{ github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -36,7 +36,7 @@ jobs:
   # Update the release draft from the pull requests merged into main
   updateReleaseDraft:
     name: Update release draft
-    if: github.event_name != 'pull_request'
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -55,7 +55,7 @@ jobs:
   # Build and sign the plugin, attach it to the draft, publish to Marketplace if enabled, and publish the draft
   release:
     name: Publish Plugin
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
     needs: updateReleaseDraft
     runs-on: ubuntu-latest
     permissions:
