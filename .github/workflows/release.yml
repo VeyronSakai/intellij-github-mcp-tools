@@ -1,5 +1,6 @@
 # GitHub Actions Workflow created for handling the release process based on the draft release prepared with the Build workflow.
-# Running the publishPlugin task requires all the following secrets to be provided: PUBLISH_TOKEN, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, CERTIFICATE_CHAIN.
+# Signing requires the secrets PRIVATE_KEY, PRIVATE_KEY_PASSWORD and CERTIFICATE_CHAIN.
+# Publishing to JetBrains Marketplace also requires PUBLISH_TOKEN and the repository variable PUBLISH_TO_MARKETPLACE=true.
 # See https://plugins.jetbrains.com/docs/intellij/plugin-signing.html for more information.
 
 name: Release
@@ -9,7 +10,7 @@ on:
 
 jobs:
 
-  # Prepare and publish the plugin to JetBrains Marketplace repository
+  # Build and sign the plugin, attach it to the GitHub release, and publish it to JetBrains Marketplace if enabled
   release:
     name: Publish Plugin
     runs-on: ubuntu-latest
@@ -56,14 +57,26 @@ jobs:
 
           ./gradlew patchChangelog --release-note-file=$RELEASE_NOTE
 
-      # Publish the plugin to JetBrains Marketplace
+      # Publish the plugin to JetBrains Marketplace.
+      # Runs only when the repository variable PUBLISH_TO_MARKETPLACE is "true";
+      # otherwise the signed plugin is only attached to the GitHub release.
       - name: Publish Plugin
+        if: ${{ vars.PUBLISH_TO_MARKETPLACE == 'true' }}
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew publishPlugin
+
+      # Build and sign the plugin without publishing it to JetBrains Marketplace
+      - name: Sign Plugin
+        if: ${{ vars.PUBLISH_TO_MARKETPLACE != 'true' }}
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin
 
       # Upload an artifact as a release asset
       - name: Upload Release Asset

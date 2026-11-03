@@ -7,7 +7,6 @@ package io.github.veyronsakai.githubmcptools.github
 import com.intellij.collaboration.util.URIUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
-import com.intellij.openapi.components.serviceAsync
 import com.intellij.openapi.progress.coroutineToIndicator
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.Dispatchers
@@ -172,13 +171,13 @@ internal class GitHubPullRequestsConnection private constructor(
 
         /** The current connection, without opening the tool window or changing anything. Null if not connected. */
         suspend fun current(project: Project): GitHubPullRequestsConnection? =
-            awaitConnected(project.serviceAsync<GHPRProjectViewModel>(), STATUS_TIMEOUT)?.let(::GitHubPullRequestsConnection)
+            awaitConnected(project.service<GHPRProjectViewModel>(), STATUS_TIMEOUT)?.let(::GitHubPullRequestsConnection)
 
         /** Reads the state without opening the tool window or changing anything. */
         suspend fun status(project: Project): Status {
             val connected = current(project)
             // Not `selectorVm`: creating it starts the GitHub plugin's auto-connection, and this must not change anything.
-            val repositories = project.serviceAsync<GHHostedRepositoriesManager>().knownRepositoriesState.value
+            val repositories = project.service<GHHostedRepositoriesManager>().knownRepositoriesState.value
             return Status(
                 repositories = repositories.map { GitHubRepositoryInfo.of(it.repository) }.sortedBy { it.fullName },
                 connected = connected?.repository,
@@ -197,7 +196,7 @@ internal class GitHubPullRequestsConnection private constructor(
          * `activateAndAwaitProject` is intentionally not used: its signature changed in 263 (binary incompatible).
          */
         suspend fun connect(project: Project, repository: String? = null): Result {
-            val projectVm = project.serviceAsync<GHPRProjectViewModel>()
+            val projectVm = project.service<GHPRProjectViewModel>()
 
             if (repository == null) {
                 projectVm.activate()
@@ -271,7 +270,7 @@ internal class GitHubPullRequestsConnection private constructor(
             project: Project,
             requested: String,
         ): Pair<Set<GHGitRepositoryMapping>, GHGitRepositoryMapping?> {
-            val state = project.serviceAsync<GHHostedRepositoriesManager>().knownRepositoriesState
+            val state = project.service<GHHostedRepositoriesManager>().knownRepositoriesState
             val known = withTimeoutOrNull(CONNECT_TIMEOUT) { state.first { it.isNotEmpty() } }
                 ?: return emptySet<GHGitRepositoryMapping>() to null
             findRepository(known, requested)?.let { return known to it }

@@ -14,9 +14,11 @@ This is an independent plugin and is not affiliated with or endorsed by GitHub o
 
 ## Installation
 
-- From JetBrains Marketplace: <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > search for "GitHub MCP Tools" > <kbd>Install</kbd>
-- Manually: download the zip from the [latest release](https://github.com/VeyronSakai/intellij-github-mcp-tools/releases/latest),
-  then <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install Plugin from Disk...</kbd>
+Download `intellij-github-mcp-tools-<version>-signed.zip` from the [latest release](https://github.com/VeyronSakai/intellij-github-mcp-tools/releases/latest),
+then <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install Plugin from Disk...</kbd>
+
+The plugin is not on JetBrains Marketplace yet: it relies on internal APIs of the bundled GitHub plugin,
+which have no public alternative so far.
 
 ## Usage
 
