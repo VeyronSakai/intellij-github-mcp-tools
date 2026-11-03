@@ -1,18 +1,26 @@
-# GitHub Actions Workflow created for handling the release process based on the draft release prepared with the Build workflow.
+# Publishes the release draft prepared by the Build workflow. Run it manually (Actions > Release > Run workflow,
+# or `gh workflow run release.yml`) from main when the draft for the current pluginVersion is ready.
+#
+# The repository uses immutable releases: assets cannot be added after a release is published.
+# So the signed plugin is attached to the draft first, and the draft is published last.
+#
 # Signing requires the secrets PRIVATE_KEY, PRIVATE_KEY_PASSWORD and CERTIFICATE_CHAIN.
 # Publishing to JetBrains Marketplace also requires PUBLISH_TOKEN and the repository variable PUBLISH_TO_MARKETPLACE=true.
 # See https://plugins.jetbrains.com/docs/intellij/plugin-signing.html for more information.
 
 name: Release
 on:
-  release:
-    types: [ prereleased, released ]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
 
-  # Build and sign the plugin, attach it to the GitHub release, and publish it to JetBrains Marketplace if enabled
   release:
     name: Publish Plugin
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,8 +37,6 @@ jobs:
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.release.tag_name }}
 
       # Set up the Java environment for the next steps
       - name: Setup Java
@@ -45,22 +51,45 @@ jobs:
         with:
           cache-read-only: true
 
-      # Update the Unreleased section with the current release note
-      - name: Patch Changelog
-        if: ${{ github.event.release.body != '' }}
+      # Find the release draft for the current version and save its notes
+      - name: Find Release Draft
+        id: draft
         env:
-          CHANGELOG: ${{ github.event.release.body }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          VERSION=$(./gradlew properties --property version --quiet --console=plain | tail -n 1 | cut -f2- -d ' ')
+          IS_DRAFT=$(gh release view "$VERSION" --json isDraft --jq .isDraft || true)
+          if [ "$IS_DRAFT" != "true" ]; then
+            echo "::error::No release draft for $VERSION. Push to main and wait for the Build workflow to create it (a published release cannot be changed)."
+            exit 1
+          fi
+
           RELEASE_NOTE="./build/tmp/release_note.txt"
           mkdir -p "$(dirname "$RELEASE_NOTE")"
-          echo "$CHANGELOG" > $RELEASE_NOTE
+          gh release view "$VERSION" --json body --jq .body > "$RELEASE_NOTE"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_note=$RELEASE_NOTE" >> "$GITHUB_OUTPUT"
 
-          ./gradlew patchChangelog --release-note-file=$RELEASE_NOTE
+      # Move the release notes from the Unreleased section to a section for this version
+      - name: Patch Changelog
+        run: ./gradlew patchChangelog --release-note-file=${{ steps.draft.outputs.release_note }}
 
-      # Publish the plugin to JetBrains Marketplace.
-      # Runs only when the repository variable PUBLISH_TO_MARKETPLACE is "true";
-      # otherwise the signed plugin is only attached to the GitHub release.
-      - name: Publish Plugin
+      # Build and sign the plugin
+      - name: Sign Plugin
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin
+
+      # Attach the plugin to the draft (assets cannot be added after publishing)
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ steps.draft.outputs.version }}" ./build/distributions/* --clobber
+
+      # Publish the plugin to JetBrains Marketplace, only when the repository variable PUBLISH_TO_MARKETPLACE is "true"
+      - name: Publish to Marketplace
         if: ${{ vars.PUBLISH_TO_MARKETPLACE == 'true' }}
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
@@ -69,28 +98,18 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew publishPlugin
 
-      # Build and sign the plugin without publishing it to JetBrains Marketplace
-      - name: Sign Plugin
-        if: ${{ vars.PUBLISH_TO_MARKETPLACE != 'true' }}
-        env:
-          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew signPlugin
-
-      # Upload an artifact as a release asset
-      - name: Upload Release Asset
+      # Publish the draft; the tag is created on the commit that was built
+      - name: Publish Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
+        run: gh release edit "${{ steps.draft.outputs.version }}" --target "$GITHUB_SHA" --draft=false --latest
 
-      # Create a pull request
+      # Push the patched changelog and open a pull request for it
       - name: Create Pull Request
-        if: ${{ github.event.release.body != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${{ steps.draft.outputs.version }}"
           BRANCH="changelog-update-$VERSION"
           LABEL="release changelog"
 
@@ -106,8 +125,11 @@ jobs:
             --force \
             || true
 
+          # Creating a pull request needs "Allow GitHub Actions to create and approve pull requests" in the repository settings.
+          # Without it, the branch is pushed and the pull request has to be opened by hand.
           gh pr create \
             --title "Changelog update - \`$VERSION\`" \
             --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
             --label "$LABEL" \
-            --head $BRANCH
+            --head $BRANCH \
+            || echo "Open the pull request by hand: ${{ github.server_url }}/${{ github.repository }}/compare/$BRANCH?expand=1" | tee -a "$GITHUB_STEP_SUMMARY"
