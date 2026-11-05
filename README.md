@@ -1,6 +1,7 @@
 # GitHub MCP Tools
 
 ![Build](https://github.com/VeyronSakai/intellij-github-mcp-tools/workflows/Build/badge.svg)
+[![Version](https://img.shields.io/jetbrains/plugin/v/35734.svg)](https://plugins.jetbrains.com/plugin/35734-github-mcp-tools)
 
 <!-- Plugin description -->
 An IntelliJ Platform plugin (IntelliJ IDEA, Rider, PyCharm, ...) that adds GitHub tools to the IDE's built-in MCP server.
@@ -14,11 +15,10 @@ This is an independent plugin and is not affiliated with or endorsed by GitHub o
 
 ## Installation
 
-Download `intellij-github-mcp-tools-<version>-signed.zip` from the [latest release](https://github.com/VeyronSakai/intellij-github-mcp-tools/releases/latest),
-then <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install Plugin from Disk...</kbd>
-
-The plugin is not on JetBrains Marketplace yet: it relies on internal APIs of the bundled GitHub plugin,
-which have no public alternative so far.
+- From [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/35734-github-mcp-tools):
+  <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > search for "GitHub MCP Tools" > <kbd>Install</kbd>
+- Manually: download `intellij-github-mcp-tools-<version>-signed.zip` from the [latest release](https://github.com/VeyronSakai/intellij-github-mcp-tools/releases/latest),
+  then <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install Plugin from Disk...</kbd>
 
 ## Usage
 
