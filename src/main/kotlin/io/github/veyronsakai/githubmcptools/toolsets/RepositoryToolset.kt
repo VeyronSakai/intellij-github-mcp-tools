@@ -20,13 +20,9 @@ class RepositoryToolset : McpToolset {
     @McpTool
     @McpDescription(
         """
-        |Lists the GitHub repositories of the current project (found in its Git remotes)
-        |and tells which one the IDE's Pull Requests tool window is connected to, and with which GitHub account.
-        |Read-only: does not open the tool window or change anything.
-        |Returns JSON: {"connected": "owner/repo" or null, "account": "login" or null,
+        |Lists the project's GitHub repositories and the one the IDE's Pull Requests tool window is connected to. Read-only.
+        |Returns JSON: {"connected": "owner/repo" or null (not connected yet), "account": "login" or null,
         |"repositories": [{"repository": "owner/repo", "url": "...", "connected": true|false}]}.
-        |An empty list means the project has no GitHub remote (or Git is still loading).
-        |"connected" is null when the tool window is not connected yet (not logged in, no repository chosen, or never opened).
         """
     )
     suspend fun github_list_repositories(): String {
@@ -50,17 +46,12 @@ class RepositoryToolset : McpToolset {
     @McpTool
     @McpDescription(
         """
-        |Selects the GitHub repository that the IDE's Pull Requests tool window (bundled GitHub plugin) works with,
-        |the same as choosing it in the tool window's repository selector, and shows its pull request list.
-        |Other tools (github_open_pull_request_details, github_set_pull_request_filter, ...) then use this repository by default.
-        |If the repository is already selected, only the list is shown.
-        |This only changes the IDE UI; nothing on GitHub is modified.
-        |Fails if `repository` is not one of the project's GitHub repositories (see github_list_repositories),
-        |or if the user is not logged in to GitHub in the IDE (ask the user to log in, then retry).
+        |Selects the repository of the IDE's Pull Requests tool window and shows its pull request list.
+        |The other tools then use it by default. Only changes the IDE UI; nothing on GitHub is modified.
         """
     )
     suspend fun github_select_repository(
-        @McpDescription("Repository to select, as owner/repo (a GitHub URL is also accepted). Required.")
+        @McpDescription("owner/repo or GitHub URL.")
         repository: String,
     ): String {
         if (repository.isBlank()) mcpFail("repository is required (format: owner/repo). See github_list_repositories.")
