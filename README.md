@@ -37,7 +37,9 @@ This is an independent plugin and is not affiliated with or endorsed by GitHub o
 | `github_open_pull_request_timeline` | Shows a pull request's timeline (description, comments, reviews) in an editor tab. Parameters: `number`, `repository` (optional). |
 | `github_open_pull_request_diff` | Shows a pull request's changes (diff) in an editor tab. Parameters: `number`, `repository` (optional). |
 | `github_open_pull_request_list` | Shows the pull request list. Parameters: `refresh` (reload from GitHub, default false), `repository` (optional). |
-| `github_close_pull_request_details` / `github_close_pull_request_timeline` / `github_close_pull_request_diff` | Closes the details tabs / timeline tabs / diff tabs of pull requests. Does **not** close pull requests on GitHub. Parameters (all optional): `number` (all pull requests if omitted), `repository`. |
+| `github_close_pull_request_details` | Closes pull request details tabs in the tool window. Parameters (all optional): `number` (all pull requests if omitted), `repository`. |
+| `github_close_pull_request_timeline` | Closes pull request timeline editor tabs. Parameters (all optional): `number` (all pull requests if omitted), `repository`. |
+| `github_close_pull_request_diff` | Closes pull request diff editor tabs. Parameters (all optional): `number` (all pull requests if omitted), `repository`. |
 | `github_close_tool_window` | Hides the Pull Requests tool window. Its tabs are kept. |
 | `github_get_pull_request_filter` | Returns the filter of the pull request list. Read-only. |
 | `github_set_pull_request_filter` | Replaces the filter of the pull request list. Parameters (all optional): `query`, `state`, `author`, `assignee`, `label`, `reviewState`, `sort`, `repository`. |
