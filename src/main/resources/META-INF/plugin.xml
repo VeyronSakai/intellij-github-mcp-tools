@@ -13,9 +13,9 @@
         <ul>
             <li><code>github_list_repositories</code> &mdash; lists the project's GitHub repositories, the selected one and the GitHub account.</li>
             <li><code>github_select_repository</code> &mdash; selects the repository of the Pull Requests tool window and shows its pull request list.</li>
-            <li><code>github_open_pull_request_view</code> &mdash; shows a pull request (details, and its timeline and/or diff).</li>
+            <li><code>github_open_pull_request_details</code>, <code>github_open_pull_request_timeline</code>, <code>github_open_pull_request_diff</code> &mdash; show a pull request's details (in the tool window), timeline or diff (in an editor tab).</li>
             <li><code>github_open_pull_request_list</code> &mdash; shows (and optionally reloads) the pull request list.</li>
-            <li><code>github_close_pull_request_view</code> &mdash; closes the timeline and/or diff views of pull requests. Does not close pull requests on GitHub.</li>
+            <li><code>github_close_pull_request_details</code>, <code>github_close_pull_request_timeline</code>, <code>github_close_pull_request_diff</code> &mdash; close those views of pull requests. Do not close pull requests on GitHub.</li>
             <li><code>github_close_tool_window</code> &mdash; hides the Pull Requests tool window.</li>
             <li><code>github_get_pull_request_filter</code> &mdash; returns the filter of the pull request list.</li>
             <li><code>github_set_pull_request_filter</code> &mdash; sets the filter of the pull request list (state, author, assignee, label, review state, sort, search query).</li>

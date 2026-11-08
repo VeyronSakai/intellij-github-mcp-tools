@@ -19,11 +19,9 @@ class PullRequestFilterToolset : McpToolset {
     @McpTool
     @McpDescription(
         """
-        |Returns the filter of the pull request list in the IDE's Pull Requests tool window (bundled GitHub plugin).
-        |Read-only: does not open the tool window or change anything.
-        |Returns JSON: {"repository": "owner/repo", "query": ..., "state": ..., "author": ..., "assignee": ...,
-        |"label": ..., "reviewState": ..., "sort": ...}; each filter field is a string or null (not set).
-        |Fails if the tool window is not connected to a repository (call github_select_repository first).
+        |Returns the filter of the pull request list in the IDE's Pull Requests tool window. Read-only.
+        |Returns JSON: {"repository": "owner/repo", "query", "state", "author", "assignee", "label", "reviewState", "sort"};
+        |each filter field is a string, or null if not set.
         """
     )
     suspend fun github_get_pull_request_filter(): String {
@@ -39,42 +37,30 @@ class PullRequestFilterToolset : McpToolset {
     @McpTool
     @McpDescription(
         """
-        |Sets the filter of the pull request list in the IDE's Pull Requests tool window (bundled GitHub plugin)
-        |and shows the list (also when a pull request's details were shown); the list reloads with the new filter.
-        |The whole filter is replaced: every parameter that is omitted or empty is cleared. To change one field,
-        |read the current filter with github_get_pull_request_filter and pass the other fields again. Calling with no parameters clears all filters.
-        |This only changes the IDE UI; nothing on GitHub is modified.
-        |If `repository` is given and differs from the connected repository, the tool window is switched to it first.
-        |Fails on an invalid enum value, if `repository` is not one of the project's GitHub repositories,
-        |or if the user is not logged in to GitHub in the IDE.
-        |Returns the applied filter as JSON (same format as github_get_pull_request_filter).
+        |Replaces the filter of the pull request list in the IDE's Pull Requests tool window and shows the list.
+        |Omitted parameters are cleared; to change one field, also pass the others from github_get_pull_request_filter.
+        |Only changes the IDE UI; nothing on GitHub is modified. Returns the applied filter like github_get_pull_request_filter.
         """
     )
     suspend fun github_set_pull_request_filter(
-        @McpDescription("Free-text search query (GitHub search syntax is accepted). Default: none.")
+        @McpDescription("Search query (GitHub search syntax).")
         query: String = "",
-        @McpDescription("Pull request state: open, closed or merged. Default: any state.")
+        @McpDescription("open, closed or merged.")
         state: String = "",
-        @McpDescription("Author login, e.g. octocat. Default: any author.")
+        @McpDescription("Author login.")
         author: String = "",
-        @McpDescription("Assignee login. Default: any assignee.")
+        @McpDescription("Assignee login.")
         assignee: String = "",
-        @McpDescription("Label name. Default: any label.")
+        @McpDescription("Label name.")
         label: String = "",
         @McpDescription(
-            "Review state: no_review, required, approved, changes_requested, reviewed_by_me, not_reviewed_by_me, " +
-                "or awaiting_review (review requested from the current user). Default: any."
+            "no_review, required, approved, changes_requested, reviewed_by_me, not_reviewed_by_me " +
+                "or awaiting_review (review requested from the current user)."
         )
         reviewState: String = "",
-        @McpDescription(
-            "Sort order: newest, oldest, most_commented, least_commented, recently_updated or least_recently_updated. " +
-                "Default: the GitHub default order."
-        )
+        @McpDescription("newest, oldest, most_commented, least_commented, recently_updated or least_recently_updated.")
         sort: String = "",
-        @McpDescription(
-            "Repository as owner/repo (a GitHub URL is also accepted). " +
-                "Optional; if omitted or empty, the currently connected repository is used."
-        )
+        @McpDescription(REPOSITORY_PARAMETER_DESCRIPTION)
         repository: String = "",
     ): String {
         val filter = PullRequestFilter(

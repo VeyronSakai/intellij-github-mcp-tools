@@ -4,6 +4,8 @@
 
 package io.github.veyronsakai.githubmcptools.github
 
+import com.intellij.collaboration.ui.toolwindow.ReviewTab
+import com.intellij.collaboration.ui.toolwindow.ReviewToolwindowProjectViewModel
 import com.intellij.collaboration.util.URIUtil
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.components.service
@@ -25,9 +27,11 @@ import org.jetbrains.plugins.github.exceptions.GithubConfusingException
 import org.jetbrains.plugins.github.pullrequest.data.GHPRIdentifier
 import org.jetbrains.plugins.github.pullrequest.ui.GHPRConnectedProjectViewModel
 import org.jetbrains.plugins.github.pullrequest.ui.GHPRProjectViewModel
+import org.jetbrains.plugins.github.pullrequest.ui.toolwindow.GHPRToolWindowTab
 import org.jetbrains.plugins.github.util.GHGitRepositoryMapping
 import org.jetbrains.plugins.github.util.GHHostedRepositoriesManager
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -62,18 +66,33 @@ internal class GitHubPullRequestsConnection private constructor(
     val accountName: String get() = connected.listVm.account.name
 
     /**
-     * Opens the pull request details (tool window) and the given views (timeline and/or diff editor tabs).
+     * Opens a view of the pull request and focuses it: its details tab in the tool window (which brings the tool window
+     * to the front), or its timeline or diff editor tab.
      * Unlike `openPullRequestInfoAndTimeline(number)`, a missing PR is reported instead of silently ignored.
      * @return false if the repository has no pull request with this number
      */
-    suspend fun openPullRequestView(number: Long, kinds: Set<PullRequestView.Kind>): Boolean {
+    suspend fun openPullRequestView(number: Long, kind: PullRequestView.Kind): Boolean {
         val id = findPullRequestId(number) ?: return false
         withContext(Dispatchers.EDT) {
-            connected.viewPullRequest(id, true)
-            if (PullRequestView.Kind.TIMELINE in kinds) connected.openPullRequestTimeline(id, true)
-            if (PullRequestView.Kind.DIFF in kinds) connected.openPullRequestDiff(id, true)
+            when (kind) {
+                PullRequestView.Kind.DETAILS -> connected.viewPullRequest(id, true)
+                PullRequestView.Kind.TIMELINE -> connected.openPullRequestTimeline(id, true)
+                PullRequestView.Kind.DIFF -> connected.openPullRequestDiff(id, true)
+            }
         }
         return true
+    }
+
+    /**
+     * Closes pull request details tabs in the tool window, the same as clicking their close buttons.
+     * @param number pull request number to limit to, or null for all pull requests
+     * @return the closed tabs
+     */
+    suspend fun closePullRequestDetails(number: Long?): List<PullRequestView> {
+        // The GitHub plugin's implementation (`GHPRToolWindowProjectViewModel`) holds the tabs of the tool window.
+        val toolWindowVm = connected as? ReviewToolwindowProjectViewModel<*, *> ?: return emptyList()
+        val fullName = repository.fullName
+        return withContext(Dispatchers.EDT) { closeDetailsTabs(toolWindowVm, fullName, number) }
     }
 
     /** Shows the pull request list in the tool window, optionally reloading it from GitHub. */
@@ -86,9 +105,16 @@ internal class GitHubPullRequestsConnection private constructor(
 
     /**
      * Number -> GraphQL node id, with one read-only GraphQL request using the tool window's account.
+     * Found ids are cached, since opening several views of a pull request looks up the same number.
      * `GHPRDataContext.detailsService.findPRId` would do the same, but it is Kotlin `internal`.
      */
     private suspend fun findPullRequestId(number: Long): GHPRIdentifier? {
+        val key = connected.repository to number
+        pullRequestIds[key]?.let { return it }
+        return requestPullRequestId(number)?.also { pullRequestIds[key] = it }
+    }
+
+    private suspend fun requestPullRequestId(number: Long): GHPRIdentifier? {
         val account = connected.listVm.account
         val token = service<GHAccountManager>().findCredentials(account)
             ?: throw GitHubAccessException(
@@ -169,6 +195,13 @@ internal class GitHubPullRequestsConnection private constructor(
         /** How long to keep waiting for a repository that is not in the (possibly still loading) list yet. */
         private val REPOSITORY_DISCOVERY_TIMEOUT: Duration = 3.seconds
 
+        /**
+         * Pull request ids by repository and number. A pull request's id never changes,
+         * and only pull requests opened through the tools are added, so entries are never removed.
+         * (`GHRepositoryCoordinates` equality and hash code both ignore the case of owner/repo and the server's scheme.)
+         */
+        private val pullRequestIds = ConcurrentHashMap<Pair<GHRepositoryCoordinates, Long>, GHPRIdentifier>()
+
         /** The current connection, without opening the tool window or changing anything. Null if not connected. */
         suspend fun current(project: Project): GitHubPullRequestsConnection? =
             awaitConnected(project.service<GHPRProjectViewModel>(), STATUS_TIMEOUT)?.let(::GitHubPullRequestsConnection)
@@ -186,19 +219,24 @@ internal class GitHubPullRequestsConnection private constructor(
         }
 
         /**
-         * Shows the Pull Requests tool window and waits until it is connected.
+         * Shows the Pull Requests tool window (see [showToolWindow]) and waits until it is connected.
          *
          * @param repository `owner/repo` or a repository URL. If null, keeps the current repository
          * (or whatever the GitHub plugin selects automatically). If it differs from the current one,
          * the tool window is switched to it, the same as choosing it in the tool window's selector.
          * The tool window is shown only after the arguments are checked, so a failing call does not steal the focus.
+         * @param showToolWindow if false and the tool window is already connected to the repository, it is not shown
+         * (e.g. to open only an editor tab). It is still shown when it has to connect or switch the repository first.
          *
          * `activateAndAwaitProject` is intentionally not used: its signature changed in 263 (binary incompatible).
          */
-        suspend fun connect(project: Project, repository: String? = null): Result {
+        suspend fun connect(project: Project, repository: String? = null, showToolWindow: Boolean = true): Result {
             val projectVm = project.service<GHPRProjectViewModel>()
 
             if (repository == null) {
+                if (!showToolWindow) {
+                    awaitConnected(projectVm, STATUS_TIMEOUT)?.let { return Result.Connected(GitHubPullRequestsConnection(it)) }
+                }
                 projectVm.activate()
                 val connected = awaitConnected(projectVm, CONNECT_TIMEOUT)
                 return when {
@@ -218,7 +256,7 @@ internal class GitHubPullRequestsConnection private constructor(
             // GHRepositoryCoordinates equality ignores the case of owner/repo.
             val current = awaitConnected(projectVm, STATUS_TIMEOUT)
             if (current != null && current.repository == target.repository) {
-                projectVm.activate()
+                if (showToolWindow) projectVm.activate()
                 return Result.Connected(GitHubPullRequestsConnection(current))
             }
 
@@ -313,5 +351,26 @@ internal class GitHubPullRequestsConnection private constructor(
         }
 
         private fun stripQueryAndFragment(value: String): String = value.substringBefore('#').substringBefore('?')
+
+        /**
+         * Closes the pull request details tabs of [toolWindowVm] (call on the EDT, like the tabs' close buttons do).
+         * The "new pull request" tab is kept: it is a form that may hold the user's input.
+         * @param repository `owner/repo` of the connection, for the result
+         * @param number pull request number to limit to, or null for all pull requests
+         * @return the closed tabs
+         */
+        internal fun <T : ReviewTab> closeDetailsTabs(
+            toolWindowVm: ReviewToolwindowProjectViewModel<T, *>,
+            repository: String,
+            number: Long?,
+        ): List<PullRequestView> {
+            val toClose = toolWindowVm.tabs.value.tabs.mapNotNull { (tab, tabVm) ->
+                val pullRequest = (tab as? GHPRToolWindowTab.PullRequest)?.prId ?: return@mapNotNull null
+                if (number != null && pullRequest.number != number) return@mapNotNull null
+                tab to PullRequestView(repository, pullRequest.number, PullRequestView.Kind.DETAILS, tabVm.displayName)
+            }
+            toClose.forEach { (tab, _) -> toolWindowVm.closeTab(tab) }
+            return toClose.map { it.second }
+        }
     }
 }
