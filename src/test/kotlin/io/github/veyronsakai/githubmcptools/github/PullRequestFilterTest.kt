@@ -5,7 +5,6 @@ package io.github.veyronsakai.githubmcptools.github
 
 import org.jetbrains.plugins.github.pullrequest.ui.filters.GHPRListSearchValue
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -70,13 +69,5 @@ class PullRequestFilterTest {
             PullRequestFilter(state = "draft").toSearchValue()
         }
         assertTrue(e.message!!, e.message!!.contains("open, closed, merged"))
-    }
-
-    @Test
-    fun `view kinds`() {
-        assertEquals(setOf(PullRequestView.Kind.TIMELINE), PullRequestView.Kind.parseSet("timeline"))
-        assertEquals(setOf(PullRequestView.Kind.DIFF), PullRequestView.Kind.parseSet(" DIFF "))
-        assertEquals(PullRequestView.Kind.values().toSet(), PullRequestView.Kind.parseSet("all"))
-        assertNull(PullRequestView.Kind.parseSet("both"))
     }
 }

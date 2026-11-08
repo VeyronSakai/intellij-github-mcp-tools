@@ -33,10 +33,12 @@ This is an independent plugin and is not affiliated with or endorsed by GitHub o
 | --- | --- |
 | `github_list_repositories` | Lists the project's GitHub repositories, the one selected in the Pull Requests tool window, and the GitHub account. Read-only. |
 | `github_select_repository` | Selects the repository of the Pull Requests tool window and shows its pull request list. Parameter: `repository` (`owner/repo`). |
-| `github_open_pull_request_view` | Shows a pull request: details in the tool window, plus timeline and/or diff in editor tabs. Parameters: `number`, `kind` (`timeline` (default), `diff`, `all`), `repository` (optional). |
+| `github_open_pull_request_details` | Shows a pull request's details (description, status, commits, changed files) in the tool window. Parameters: `number`, `repository` (optional). |
+| `github_open_pull_request_timeline` | Shows a pull request's timeline (description, comments, reviews) in an editor tab. Parameters: `number`, `repository` (optional). |
+| `github_open_pull_request_diff` | Shows a pull request's changes (diff) in an editor tab. Parameters: `number`, `repository` (optional). |
 | `github_open_pull_request_list` | Shows the pull request list. Parameters: `refresh` (reload from GitHub, default false), `repository` (optional). |
-| `github_close_pull_request_view` | Closes the timeline and/or diff views of pull requests. Does **not** close pull requests on GitHub. Parameters (all optional): `number` (all pull requests if omitted), `kind` (`timeline`, `diff`, `all` (default)), `repository`. |
-| `github_close_tool_window` | Hides the Pull Requests tool window. |
+| `github_close_pull_request_details` / `github_close_pull_request_timeline` / `github_close_pull_request_diff` | Closes the details tabs / timeline tabs / diff tabs of pull requests. Does **not** close pull requests on GitHub. Parameters (all optional): `number` (all pull requests if omitted), `repository`. |
+| `github_close_tool_window` | Hides the Pull Requests tool window. Its tabs are kept. |
 | `github_get_pull_request_filter` | Returns the filter of the pull request list. Read-only. |
 | `github_set_pull_request_filter` | Replaces the filter of the pull request list. Parameters (all optional): `query`, `state`, `author`, `assignee`, `label`, `reviewState`, `sort`, `repository`. |
 

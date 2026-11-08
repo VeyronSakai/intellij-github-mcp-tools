@@ -52,7 +52,7 @@ class RepositoryToolset : McpToolset {
         """
         |Selects the GitHub repository that the IDE's Pull Requests tool window (bundled GitHub plugin) works with,
         |the same as choosing it in the tool window's repository selector, and shows its pull request list.
-        |Other tools (github_open_pull_request_view, github_set_pull_request_filter, ...) then use this repository by default.
+        |Other tools (github_open_pull_request_details, github_set_pull_request_filter, ...) then use this repository by default.
         |If the repository is already selected, only the list is shown.
         |This only changes the IDE UI; nothing on GitHub is modified.
         |Fails if `repository` is not one of the project's GitHub repositories (see github_list_repositories),
